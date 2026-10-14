@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { DalailLanguage, DalailLine } from "@/lib/dalail-types";
+import type { DalailLine } from "@/lib/dalail-types";
 import { getBookmarks, getCompletedPartsForToday, getSavedProgress, saveProgress, toggleBookmark, togglePartCompletion } from "@/lib/reader-storage";
 
 type ReaderProps = {
@@ -12,27 +12,46 @@ type ReaderProps = {
   titleArabic?: string;
   subtitle: string;
   lines: DalailLine[];
-  languages: DalailLanguage[];
   dayLabel?: string;
   previousPart?: number;
   nextPart?: number;
 };
 
-export default function Reader({ kind, parentId, title, titleArabic, subtitle, lines, languages, dayLabel, previousPart, nextPart }: ReaderProps) {
+export default function Reader({ kind, parentId, title, titleArabic, subtitle, lines, dayLabel, previousPart, nextPart }: ReaderProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const progressTrackRef = useRef<HTMLDivElement>(null);
   const progressFillRef = useRef<HTMLDivElement>(null);
+  const progressThumbRef = useRef<HTMLDivElement>(null);
+  const isDraggingProgressRef = useRef(false);
   const lastSavedLineRef = useRef<number | null>(null);
   const [mode, setMode] = useState<"arabic" | "translation" | "both">("both");
-  const [translationKey, setTranslationKey] = useState("trans");
   const [fontScale, setFontScale] = useState(1);
   const [bookmarkedLines, setBookmarkedLines] = useState<string[]>([]);
   const [currentLine, setCurrentLine] = useState(lines[0]?.number ?? 0);
+  const [progressPercent, setProgressPercent] = useState(0);
   const [completed, setCompleted] = useState(false);
 
-  const translationOptions = languages.filter((language) => language.key !== "arabicText");
-  const selectedLanguage = translationOptions.find((language) => language.key === translationKey) ?? translationOptions[2];
   const partNumber = kind === "part" ? Number(parentId) : null;
+
+  const seekToProgress = useCallback((progress: number) => {
+    const container = contentRef.current;
+    if (!container) return;
+    const value = Math.max(0, Math.min(1, progress));
+    const readingAnchor = window.innerWidth < 760 ? 225 : 170;
+    const visibleContentHeight = Math.max(1, window.innerHeight - readingAnchor - 48);
+    const scrollableContentHeight = Math.max(1, container.scrollHeight - visibleContentHeight);
+    const containerTop = container.getBoundingClientRect().top + window.scrollY;
+    const targetScrollY = containerTop - readingAnchor + value * scrollableContentHeight;
+    window.scrollTo({ top: Math.max(0, targetScrollY), behavior: "instant" });
+  }, []);
+
+  const seekFromPointer = useCallback((clientX: number) => {
+    const track = progressTrackRef.current;
+    if (!track) return;
+    const { left, width } = track.getBoundingClientRect();
+    if (width <= 0) return;
+    seekToProgress((clientX - left) / width);
+  }, [seekToProgress]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -72,7 +91,8 @@ export default function Reader({ kind, parentId, title, titleArabic, subtitle, l
     const progress = Math.max(0, Math.min(1, (readingAnchor - container.getBoundingClientRect().top) / scrollableContentHeight));
     const progressPercent = Math.round(progress * 100);
     if (progressFillRef.current) progressFillRef.current.style.width = `${progressPercent}%`;
-    progressTrackRef.current?.setAttribute("aria-valuenow", String(progressPercent));
+    if (progressThumbRef.current) progressThumbRef.current.style.left = `${progressPercent}%`;
+    setProgressPercent(progressPercent);
 
     const anchor = 170;
     const current = Array.from(container.querySelectorAll<HTMLElement>("[data-reader-line]"))
@@ -111,8 +131,50 @@ export default function Reader({ kind, parentId, title, titleArabic, subtitle, l
 
   return (
     <div className="mx-auto w-[min(100%-1.5rem,65.625rem)] py-6 pb-20 sm:w-[min(100%-2rem,65.625rem)] sm:py-8">
-      <div ref={progressTrackRef} className="fixed inset-x-0 top-[115px] z-30 h-1 bg-surface-muted sm:top-[76px]" role="progressbar" aria-label="Reading progress" aria-valuenow={0} aria-valuemin={0} aria-valuemax={100}>
-        <div ref={progressFillRef} className="h-full rounded-r-full bg-primary transition-[width] duration-100" style={{ width: "0%" }} />
+      <div
+        ref={progressTrackRef}
+        className="group fixed inset-x-0 top-[107px] z-30 h-5 touch-none cursor-pointer sm:top-[68px]"
+        role="slider"
+        tabIndex={0}
+        aria-label="Reading progress"
+        aria-valuenow={progressPercent}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuetext={`${progressPercent}% · Line ${currentLine} of ${lines.length}`}
+        onPointerDown={(event) => {
+          event.currentTarget.setPointerCapture(event.pointerId);
+          isDraggingProgressRef.current = true;
+          seekFromPointer(event.clientX);
+        }}
+        onPointerMove={(event) => {
+          if (isDraggingProgressRef.current) seekFromPointer(event.clientX);
+        }}
+        onPointerUp={(event) => {
+          isDraggingProgressRef.current = false;
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+        }}
+        onPointerCancel={() => { isDraggingProgressRef.current = false; }}
+        onKeyDown={(event) => {
+          const step = event.shiftKey ? 10 : 2;
+          if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+            event.preventDefault();
+            seekToProgress((progressPercent + step) / 100);
+          } else if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+            event.preventDefault();
+            seekToProgress((progressPercent - step) / 100);
+          } else if (event.key === "PageUp" || event.key === "PageDown") {
+            event.preventDefault();
+            seekToProgress((progressPercent + (event.key === "PageUp" ? -10 : 10)) / 100);
+          } else if (event.key === "Home" || event.key === "End") {
+            event.preventDefault();
+            seekToProgress(event.key === "Home" ? 0 : 1);
+          }
+        }}
+      >
+        <div className="absolute inset-x-0 top-2 h-1 bg-surface-muted">
+          <div ref={progressFillRef} className="h-full rounded-r-full bg-primary transition-[width] duration-100" style={{ width: "0%" }} />
+        </div>
+        <div ref={progressThumbRef} className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-background opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" style={{ left: "0%" }} />
       </div>
       <div className="flex items-start justify-between gap-5 max-sm:block">
         <div>
@@ -133,14 +195,6 @@ export default function Reader({ kind, parentId, title, titleArabic, subtitle, l
             </button>
           ))}
         </div>
-        {mode !== "arabic" && (
-          <label className="flex items-center gap-2 rounded-xl border border-line bg-surface-secondary px-2.5">
-            <span className="text-[9px] font-black uppercase tracking-wider text-text-secondary">Translate</span>
-            <select className="min-h-9 max-w-[155px] rounded-lg bg-transparent py-1 pr-5 text-[11px] font-bold text-foreground outline-none" value={translationKey} onChange={(event) => setTranslationKey(event.target.value)} aria-label="Choose translation language">
-              {translationOptions.map((language) => <option key={language.key} value={language.key}>{language.name}</option>)}
-            </select>
-          </label>
-        )}
         <div className="ml-auto flex items-center gap-1.5" aria-label="Text size controls">
           <button className="grid size-8 place-items-center rounded-lg border border-line bg-surface text-lg text-primary-dark" type="button" onClick={() => setFontScale((value) => Math.max(.8, +(value - .1).toFixed(1)))} aria-label="Decrease text size">−</button>
           <span className="px-1 text-[9px] font-black uppercase tracking-wider text-text-secondary">Text</span>
@@ -151,7 +205,7 @@ export default function Reader({ kind, parentId, title, titleArabic, subtitle, l
       <div ref={contentRef} className="grid gap-3">
         {lines.map((line) => {
           const arabic = line.texts.arabicText ?? "";
-          const translation = line.texts[translationKey] ?? "";
+          const translation = line.texts.trans ?? "";
           const bookmarkId = `${kind}:${parentId}:${line.number}`;
           const saved = bookmarkedLines.includes(bookmarkId);
           return (
@@ -165,7 +219,7 @@ export default function Reader({ kind, parentId, title, titleArabic, subtitle, l
               <div className={`px-3 pb-4 pt-1 sm:px-5 ${mode === "both" ? "grid grid-cols-1 sm:grid-cols-2" : ""}`}>
                 {mode !== "translation" && arabic ? <p className={`py-3 font-serif leading-[2] text-right text-foreground sm:text-[1.7rem] ${mode === "both" ? "sm:col-start-2 sm:row-start-1" : ""}`} lang="ar" dir="rtl" style={{ fontSize: `${1.7 * fontScale}rem` }}>{arabic}</p> : null}
                 {mode !== "arabic" && translation ? (
-                  <p className={`py-3 font-serif leading-[1.9] text-text-secondary ${selectedLanguage.direction === "rtl" ? "text-right leading-[2]" : ""} ${mode === "both" ? "sm:col-start-1 sm:row-start-1 sm:border-r sm:border-line sm:pr-5" : ""}`} lang={selectedLanguage.code} dir={selectedLanguage.direction} style={{ fontSize: `${1.15 * fontScale}rem` }}>{translation}</p>
+                  <p className={`py-3 font-serif leading-[1.9] text-text-secondary ${mode === "both" ? "sm:col-start-1 sm:row-start-1 sm:border-r sm:border-line sm:pr-5" : ""}`} lang="en" dir="ltr" style={{ fontSize: `${1.15 * fontScale}rem` }}>{translation}</p>
                 ) : null}
               </div>
             </article>

@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     default: "Dalailul Khairat · A Text Reading Companion",
     template: "%s · Dalailul Khairat",
   },
-  description: "Read Dalailul Khairat in Arabic and translations, follow the daily wird, and save your place.",
+  description: "Read Dalailul Khairat in Arabic and English, follow the daily wird, and save your place.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

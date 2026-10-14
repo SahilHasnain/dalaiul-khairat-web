@@ -1,5 +1,5 @@
 import Reader from "@/components/reader";
-import { DALAIL_DUAS, DALAIL_LANGUAGES, getDua } from "@/lib/dalail";
+import { DALAIL_DUAS, getDua } from "@/lib/dalail";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
@@ -29,9 +29,8 @@ export default async function DuaPage({ params }: PageProps) {
       parentId={dua.slug}
       title={dua.title}
       titleArabic={dua.titleArabic}
-      subtitle="Read the dua in Arabic, transliteration, or a translation."
+      subtitle="Read the dua in Arabic and English."
       lines={dua.lines}
-      languages={DALAIL_LANGUAGES}
     />
   );
 }

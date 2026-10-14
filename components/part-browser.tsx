@@ -54,7 +54,7 @@ export default function PartBrowser({ parts }: { parts: PartSummary[] }) {
                   <h2 className="mt-4 font-serif text-xl font-semibold text-foreground">{part.day}</h2>
                   <p className="mt-1 text-xs leading-6 text-text-secondary">{part.description}</p>
                 </div>
-                <div className="mt-4 flex items-center justify-between text-[11px] text-text-secondary"><span>Arabic · Transliteration · 7 translations</span><span className="font-extrabold text-primary-dark">Read →</span></div>
+                <div className="mt-4 flex items-center justify-between text-[11px] text-text-secondary"><span>Arabic · English</span><span className="font-extrabold text-primary-dark">Read →</span></div>
               </Link>
             );
           })}

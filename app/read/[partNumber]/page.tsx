@@ -1,5 +1,5 @@
 import Reader from "@/components/reader";
-import { DALAIL_LANGUAGES, DALAIL_PARTS, getPart } from "@/lib/dalail";
+import { DALAIL_PARTS, getPart } from "@/lib/dalail";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
@@ -35,7 +35,6 @@ export default async function ReadPartPage({ params }: PageProps) {
       dayLabel={part.number === 8 ? "Part 8 · Cycle closing" : `Part ${part.number} · ${part.day}`}
       titleArabic={part.title}
       lines={part.lines}
-      languages={DALAIL_LANGUAGES}
       previousPart={part.number > 1 ? part.number - 1 : undefined}
       nextPart={part.number < DALAIL_PARTS.length ? part.number + 1 : undefined}
     />

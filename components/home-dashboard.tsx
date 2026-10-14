@@ -63,7 +63,7 @@ export default function HomeDashboard({ parts, duas }: { parts: PartSummary[]; d
           <div className="pointer-events-none absolute -right-10 -bottom-32 -z-10 size-72 rounded-full border border-hero-control sm:size-80" />
           <p className="text-[10px] font-black uppercase tracking-[.18em] text-hero-accent">{today || "Your daily salawat"} · Daily salawat</p>
           <h1 id="home-title" className="mt-3 max-w-[620px] font-serif text-[clamp(2.25rem,5vw,3.5rem)] font-medium leading-[1.03] tracking-[-.045em]">A little reading.<br />A lasting connection.</h1>
-          <p className="mt-4 max-w-[470px] text-sm leading-7 text-hero-muted">Read Dalailul Khairat in Arabic and translations, one portion at a time. Your reading place and bookmarks stay on this device.</p>
+          <p className="mt-4 max-w-[470px] text-sm leading-7 text-hero-muted">Read Dalailul Khairat in Arabic and English, one portion at a time. Your reading place and bookmarks stay on this device.</p>
           <div className="mt-6 flex flex-wrap gap-2.5">
             {todayPortions[0] ? <Link className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[13px] bg-hero-primary px-5 text-[13px] font-extrabold text-hero-foreground transition hover:bg-hero-primary-hover" href={`/read/${todayPortions[0].number}`}>Read today <span aria-hidden="true">→</span></Link> : <Link className="inline-flex min-h-11 items-center justify-center rounded-[13px] bg-hero-primary px-5 text-[13px] font-extrabold text-hero-foreground" href="/parts">Browse portions</Link>}
             <Link className="inline-flex min-h-11 items-center justify-center rounded-[13px] border border-hero-control bg-hero-control-soft px-5 text-[13px] font-extrabold text-hero-text transition hover:bg-hero-control-hover" href="/parts">Browse all parts</Link>
@@ -119,7 +119,7 @@ export default function HomeDashboard({ parts, duas }: { parts: PartSummary[]; d
                   <h3 className="mt-3 font-serif text-xl font-semibold text-foreground">{part.day}</h3>
                   <p className="mt-1 text-xs leading-6 text-text-secondary">{part.description}</p>
                 </div>
-                <div className="mt-4 flex items-center justify-between text-[11px] text-text-secondary"><span>Text reader · Arabic + translations</span><span className="font-extrabold text-primary-dark">Open →</span></div>
+                <div className="mt-4 flex items-center justify-between text-[11px] text-text-secondary"><span>Text reader · Arabic + English</span><span className="font-extrabold text-primary-dark">Open →</span></div>
               </Link>
             );
           })}
